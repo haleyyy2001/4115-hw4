@@ -1,3 +1,6 @@
+
+---
+
 ## **Team Members**
 
 - **Name**: Huilin Tai, Huixuan Huang
@@ -7,68 +10,87 @@
 
 ## **Table of Contents**
 
-1. [Introduction](#introduction)
-2. [Language Structure](#language-structure)
-3. [Lexical Grammar](#lexical-grammar)
-   - [Token Types and Definitions](#token-types-and-definitions)
-4. [Grammar Definition (CFG)](#grammar-definition-cfg)
-5. [Installation and Execution](#installation-and-execution)
-   - [Prerequisites](#prerequisites)
-   - [Execution Steps](#execution-steps)
-6. [Detailed Description of Each Step](#detailed-description-of-each-step)
-   - [Lexer Algorithm](#lexer-algorithm)
-   - [Parser Algorithm](#parser-algorithm)
-   - [AST printer](#ast-printer)
-   - [Error Handling](#error-handling)
-7. [Sample Input Programs and Expected Outputs](#sample-input-programs-and-expected-outputs)
-8. [Video](https://www.youtube.com/watch?v=yMmpJsR8iAI)
+1. [Introduction](#introduction)  
+2. [Language Structure](#language-structure)  
+3. [Lexical Grammar](#lexical-grammar)  
+   - [Token Types and Definitions](#token-types-and-definitions)  
+4. [Grammar Definition (CFG)](#grammar-definition-cfg)  
+5. [Installation and Execution](#installation-and-execution)  
+   - [Prerequisites](#prerequisites)  
+   - [Execution Steps](#execution-steps)  
+6. [Detailed Description of Each Step](#detailed-description-of-each-step)  
+   - [Lexer Algorithm](#lexer-algorithm)  
+   - [Parser Algorithm](#parser-algorithm)  
+   - [AST Printer](#ast-printer)  
+   - [Code Generator Algorithm](#code-generator-algorithm)  
+   - [Error Handling](#error-handling)  
+7. [Sample Input Programs and Expected Outputs](#sample-input-programs-and-expected-outputs)  
+8. [Additional Notes on Code Structure](#additional-notes-on-code-structure)  
+9. [Video](#video)
 
 ---
 
 ## **Introduction**
 
-This project involves creating a lexer and parser for a custom programming language designed for musical notation and playback commands. The lexer reads source code written in this language, producing a list of tokens, while the parser generates an Abstract Syntax Tree (AST) based on defined grammatical rules. The final output demonstrates syntactic analysis and error-handling capabilities, which could be extended to support MIDI file generation in future work.
+This project implements a compiler front-end for a custom domain-specific programming language designed for musical notation and playback commands. The language allows users to specify musical attributes (e.g., BPM, instrument), composer details, and note sequences (including repeats) to ultimately generate music. The compilation pipeline includes:
+
+1. **Lexical Analysis (Lexer)**: Converts the source code into a sequence of tokens.
+2. **Parsing (Parser)**: Uses a recursive descent parser to build an Abstract Syntax Tree (AST) from the token stream, enforcing the grammar rules.
+3. **Code Generation**: Translates the AST into a lower-level target—here, a MIDI file—enabling playback through standard MIDI players.
+
+The final output demonstrates syntactic analysis, error-handling, and code generation capabilities. Although currently focused on generating MIDI files, this architecture could be extended for other backends or more sophisticated musical transformations.
 
 ---
 
 ## **Language Structure**
 
-Our custom language is designed for composing music and issuing playback commands. It allows users to declare instruments, beats per minute (BPM), composers, and titles, as well as specify musical notes with associated durations.
+Our custom language is designed to facilitate music composition. It includes:
+
+- **Header Declarations**: Provide global settings such as instrument type, BPM, title, and composer.
+- **Play Commands**: Define sequences of notes (including repeated sections) that form the musical piece.
+- **Musical Notes**: Specified in a solfege-like notation combined with octave numbers and accidentals.
+- **Ending Command**: Marks the conclusion of the input program with the `end` keyword.
 
 ### **Key Constructs**:
 
-1. **Instrument Declaration**: Specifies the instrument (e.g., `Piano` or `Violin`).
-   
+1. **Instrument Declaration**:  
    ```plaintext
    instrument = Piano;
    ```
+   This sets the instrument used for playback. Supported values currently include "Piano" or "Guitar", defaulting to Piano if not recognized.
 
-2. **BPM Declaration**: Sets the tempo for playback.
-   
+2. **BPM Declaration**:  
    ```plaintext
    bpm = 120;
    ```
+   Sets the tempo of the piece.
 
-3. **Composer and Title Declaration**: Specifies the title and composer of the piece.
-   
+3. **Composer and Title Declaration**:  
    ```plaintext
    title = "Some Title";
    composer = "Some Composer";
    ```
+   Provides descriptive metadata for the composition.
 
-4. **Play Command**: Defines the notes to be played along with their durations.
-   
+4. **Play Command**:  
    ```plaintext
-   play (Do4# quarter);
+   play (Do4# quarter, Re4- half, repeat(Mi4- whole, Fa4# half));
    ```
+   Defines a sequence of notes or repeated sequences.
 
-5. **Music Notes**: Expressed in solfege notation (e.g., `Do`, `Re`), followed by an octave number (0-7), and an accidental (`#` stands for sharp, `-` stands for natural, `_` stands for flat).
+5. **Music Notes**:  
+   Represented as `<Solfege><Octave><Accidental>`:
+   - **Solfege**: `Do`, `Re`, `Mi`, `Fa`, `So`, `La`, `Ti`
+   - **Octave**: An integer from 0 to 7 (used as a relative position in pitch space).
+   - **Accidental**: `#` (sharp), `-` (natural), `_` (flat)
 
-6. **End Command**: Marks the end of the music declaration.
-   
+   Example: `Do4#` means the note "Do" in the 4th octave, sharpened by one semitone.
+
+6. **End Command**:  
    ```plaintext
    end
    ```
+   Signifies the end of the program.
 
 ---
 
@@ -78,17 +100,17 @@ Our custom language is designed for composing music and issuing playback command
 
 | Token Type     | Example       | Description                               |
 |----------------|---------------|-------------------------------------------|
-| KEYWORD        | `play`        | Reserved words                            |
-| IDENTIFIER     | `Piano`       | User-defined names                        |
-| OPERATOR       | `=`           | Assignment operator                       |
-| NUMBER         | `120`         | Numeric literals                          |
+| KEYWORD        | `play`        | Reserved words (`play`, `repeat`, `end`, `instrument`, `bpm`, `title`, `composer`) |
+| IDENTIFIER     | `Piano`       | User-defined names or unrecognized words |
+| OPERATOR       | `=`           | Assignment operator for setting attributes |
+| NUMBER         | `120`         | Numeric literals (used for BPM) |
 | STRING_LITERAL | `"Beethoven"` | Text enclosed in double quotes            |
-| MUSICNOTE      | `Do5#`        | Music note notation                       |
-| DURATION       | `quarter`     | Note durations                            |
+| MUSICNOTE      | `Do5#`        | Music note notation (Solfege + Octave + Accidental) |
+| DURATION       | `quarter`     | Note durations: `whole`, `half`, `quarter`, `eighth`, `sixteenth` |
 | LPAREN         | `(`           | Left parenthesis                          |
 | RPAREN         | `)`           | Right parenthesis                         |
 | SEMICOLON      | `;`           | Statement terminator                      |
-| COMMA          | `,`           | Separator                                 |
+| COMMA          | `,`           | Separator for sequences                   |
 
 ---
 
@@ -97,83 +119,88 @@ Our custom language is designed for composing music and issuing playback command
 ### **Production Rules**
 
 1. **S** -> **H T end**  
-   A complete program consists of a header chunk, followed by a track section, and ending with the `end` keyword. `end` is a terminal
+   A complete program includes a header section (H), a track section (T), and concludes with `end`.
 
 2. **H** -> **E; H** | ε  
-   The header chunk can be empty or consists of list of expressions (e.g. assignment`A=V`) followed by a semicolon, which are recursively followed by zero or more expressions.
+   The header may be empty or consist of multiple expressions separated by semicolons.
 
 3. **E** -> **A=V**  
-   Each expression can be an assignment, where a value is assigned to a specific attribute. This structure allows for future functionality expansions.
+   Each expression is an assignment of a value V to an attribute A.
 
 4. **A** -> **composer** | **instrument** | **bpm** | **title**  
-   Attributes in the header can include `composer`, `instrument`, `bpm`, or `title`. The nonterminal `A` is a set of terminals.
+   Attributes that can be set in the header.
 
 5. **V** -> **NUMBER** | **STRING_LITERAL** | **IDENTIFIER**  
-   The values assigned to attributes can be numbers, string literals, or identifiers (such as instrument names). The non-terminal `V` is a set of terminals.
+   Values assigned to attributes: a number (for bpm), a string (for title/composer), or an identifier (for instrument).
 
 6. **T** -> **play (M);**  
-   The track section starts with the `play` keyword, followed by a parenthesized sequence of musical notes/statements, and end with a semicolon. 
+   The track section is introduced by `play`, followed by a parenthesized music sequence M, and ends with a semicolon.
 
 7. **M** -> **melody M'** | **repeat (M) M'**  
-   Music sequence can be individual melody or a `repeat` statement containing a nested sequence.
+   A music sequence can be a single melody or a `repeat` construct containing another sequence.
 
 8. **M'** -> ε | **, M**  
-   Musical sequences are comma-separated lists, which can be empty or continue with additional notes/statements.
+   Musical sequences can be comma-separated lists.
 
 9. **melody** -> **MUSICNOTE DURATION**  
-    A melody consists of a music note to specify the pitch and duration of the note to specify the rhythm. Here `MUSICNOTE` is defined above in the key construct section. Each note is expressed in solfege notation (e.g., `Do`, `Re`), followed by an octave number (0-7), and an accidental (`#`, `-`, `_`). `DURATION` can be `whole`, `half`, `quater`, `eighth`,`sixteenth`.
+   A melody element consists of a single MUSICNOTE and a DURATION.
+
 ---
 
 ## **Installation and Execution**
 
 ### **Prerequisites**
 
-- **OCaml Compiler**: Ensure that the OCaml compiler (`ocamlc`) is installed on your system.
-  
-  - **Installation on Ubuntu/Debian**:
-    ```bash
-    sudo apt-get install ocaml
-    ```
+- **OCaml Compiler (ocamlc)**:  
+  Required to build the project.  
+  **Ubuntu/Debian**:
+  ```bash
+  sudo apt-get install ocaml
+  ```
+  **macOS (Homebrew)**:
+  ```bash
+  brew install ocaml
+  ```
 
-  - **Installation on macOS (using Homebrew)**:
-    ```bash
-    brew install ocaml
-    ```
+- **opam** (recommended) to manage OCaml packages:
+  ```bash
+  brew install opam
+  ```
+  or
+  ```bash
+  sudo apt-get install opam
+  ```
 
 ### **Execution Steps**
 
-1. **Clone the Repository**: Download or clone the project files.
+1. **Clone the Repository**:  
+   ```bash
+   git clone https://github.com/haleyyy2001/4115-hw3.git
+   cd 4115-hw3
+   ```
 
-2. **Make the Script Executable**: Ensure the `install_and_run.sh` script has execute permissions.
-
+2. **Make the Script Executable**:  
    ```bash
    chmod +x install_and_run.sh
    ```
 
-3. **Run the Parser with the Provided Shell Script**
+3. **Run the Compiler**:  
+   Use the provided shell script `install_and_run.sh` to handle installation checks and compile & run steps. Supply the input file to generate tokens, parse, and produce a `.mid` file:
 
-   ```bash
-   ./install_and_run.sh <input_file>
-   ```
-
-   **Example**:
    ```bash
    ./install_and_run.sh Program1.txt
    ```
-
-4. **Alternative Compilation and Execution**
-
-   - Run the following commands:
    
-     ```bash
-     ocamlc -o lexer.exe tokens.ml lexer.ml parser.ml ast_printer.ml main.ml
-     ```
+   On success, it generates `program1.mid` as output.  
 
-   - Run the executable:
-   
-     ```bash
-     ./lexer.exe <input_file>
-     ```
+4. **Alternative Manual Compilation**:
+   If desired, you can manually compile and run:
+   ```bash
+   ocamlc -o compiler.exe tokens.ml lexer.ml parser.ml ast_printer.ml code_generator.ml main.ml
+   ./compiler.exe Program1.txt
+   ```
+
+   This approach gives you fine-grained control if you need to debug compilation steps.
 
 ---
 
@@ -181,28 +208,53 @@ Our custom language is designed for composing music and issuing playback command
 
 ### **Lexer Algorithm**
 
-The scanner reads the input source code character by character, tokenizing it based on the defined lexical grammar. Finite automata are used to process complex tokens, such as music notes and string literals, and to manage error handling.
+- The lexer (in `lexer.ml`) processes the input file character by character.
+- It identifies tokens according to the rules defined in `tokens.ml`.
+- Whitespaces, comments (if any), and irrelevant characters are skipped.
+- On encountering errors, such as an invalid character or an improperly closed string literal, the lexer raises a `LexingError` with a descriptive message.
 
 ### **Parser Algorithm**
 
-The parser program uses a **Recursive Descent Parsing algorithm**. Given that our language is designed as an LL(1) grammar with no left recursion, recursive descent parsing can process the token stream efficiently and without ambiguity. Seven of the nine non-terminals (`S`, `H`, `E`, `T`, `M`, `M'`, `melody`) have explicitly defined parsing functions, while `A` and `V` are sets of non-terminals that are checked implicitly.
+- The parser (in `parser.ml`) uses a **Recursive Descent Parsing** strategy.
+- Given that the grammar is LL(1)-friendly and has no left recursion, the parser can process tokens top-down, choosing the correct production rules based on lookahead tokens.
+- If a token does not match the expected production rule, a `ParseError` is raised, indicating the location and nature of the syntax issue.
 
-### **AST printer**
+### **AST Printer**
 
-The ast-printer program print the AST in a specific format. Each non-terminal is marked with a `$`
+- Implemented in `ast_printer.ml`, the AST printer outputs a readable representation of the parsed structure.
+- Each non-terminal is marked with a `$` sign.
+- The hierarchy of nodes is visualized with ASCII lines (`├──` and `└──`), and tokens are printed with their type (e.g., `KEYWORD(...)`, `NUMBER(...)`).
+- This helps in debugging and verifying that the parsed structure matches the expected grammar.
+
+### **Code Generator Algorithm**
+
+- Implemented in `code_generator.ml`, the code generator takes the AST as input.
+- Steps:
+  1. **Header Processing**: Retrieves `title`, `composer`, `instrument`, and `bpm` from the AST. Missing attributes default to sensible values (e.g., tempo=120 BPM, instrument=Piano).
+  2. **Track Processing**: Reads `play` constructs, identifies `melody` and `repeat` sequences, and translates each note-duration pair into MIDI events.
+  3. **MIDI Generation**: Notes are converted to MIDI pitches. Durations are mapped to ticks, and the correct tempo and instrument program changes are inserted.
+- The resulting `.mid` file can be played in standard MIDI players.
+- If notes or durations are invalid, errors can be printed, aiding in debugging the input program.
 
 ### **Error Handling**
 
-The lexer and parser raise a `LexingError` or `ParseError` with descriptive messages when they encounter syntactical or lexical issues. These errors help users identify issues in the input code, such as unrecognized characters or missing punctuation.
+- **LexingError**: Triggered by illegal characters or unterminated strings.
+- **ParseError**: Triggered by syntax violations, such as missing semicolons, unmatched parentheses, or unexpected tokens.
+- **Semantic/Code Generation Errors**: If encountered invalid notes or durations, the code generator can report them. Although the code generator is currently straightforward, it sets the stage for future semantic checks.
 
 ---
 
 ## **Sample Input Programs and Expected Outputs**
 
+The provided sample programs (`Program1.txt` to `Program6.txt`) test various features and error conditions. To run them, use:
+
+```bash
+./install_and_run.sh ProgramX.txt
+```
+
 ### **Program 1: Basic Music Program**
 
-**Content**:
-
+**Content (`Program1.txt`)**:
 ```plaintext
 title="mymusic";
 composer="someone";
@@ -212,122 +264,26 @@ play (Do4# quarter, Re4- half, repeat(Mi4- whole, Fa4# half));
 end
 ```
 
-**Expected AST**:
-```
-$Program
-  $Header chunk
-    $Expression - Attribute Assignment
-    ├── KEYWORD(title)
-    ├── OPERATOR(=)
-    └── STRING_LITERAL(mymusic)
-  └── SEMICOLON
-  $Header chunk
-    $Expression - Attribute Assignment
-    ├── KEYWORD(composer)
-    ├── OPERATOR(=)
-    └── STRING_LITERAL(someone)
-  └── SEMICOLON
-  $Header chunk
-    $Expression - Attribute Assignment
-    ├── KEYWORD(instrument)
-    ├── OPERATOR(=)
-    └── IDENTIFIER(Piano)
-  └── SEMICOLON
-  $Header chunk
-    $Expression - Attribute Assignment
-    ├── KEYWORD(bpm)
-    ├── OPERATOR(=)
-    └── NUMBER(120)
-  └── SEMICOLON
-  $Track chunk
-  ├── KEYWORD(play)
-  ├── LPAREN
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Do4#)
-      └── DURATION(quarter)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Re4-)
-      └── DURATION(half)
-    ├── COMMA
-    $Repeat Sequence
-    ├── KEYWORD(repeat)
-    ├── LPAREN
-      $Music sequence
-        $Melody
-        ├── MUSICNOTE(Mi4-)
-        └── DURATION(whole)
-      ├── COMMA
-      $Music sequence
-        $Melody
-        ├── MUSICNOTE(Fa4#)
-        └── DURATION(half)
-    ├── RPAREN
-  ├── RPAREN
-  └── SEMICOLON
-└── KEYWORD(end)
-```
+**Expected Behavior**:
+- Lex and parse successfully.
+- Print AST representing assignments in header and `play` block.
+- Generate `program1.mid` file containing the specified notes and repeats.
 
 ### **Program 2: Empty Header Chunk**
 
-**Content**:
-
+**Content (`Program2.txt`)**:
 ```plaintext
 play (Mi5_ whole, Fa5_ half, Mi5_eighth, Re5_ sixteenth, Do5_ whole, Re5_ half, Mi5_quarter);
-end          
+end
 ```
 
-**Expected Tokens**:
-```
-$Program
-  $Track chunk
-  ├── KEYWORD(play)
-  ├── LPAREN
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Mi5_)
-      └── DURATION(whole)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Fa5_)
-      └── DURATION(half)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Mi5_)
-      └── DURATION(eighth)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Re5_)
-      └── DURATION(sixteenth)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Do5_)
-      └── DURATION(whole)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Re5_)
-      └── DURATION(half)
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Mi5_)
-      └── DURATION(quarter)
-  ├── RPAREN
-  └── SEMICOLON
-└── KEYWORD(end)
-```
+**Expected Behavior**:
+- No header assignments, just a direct `play` command.
+- Produce `program2.mid` with the given notes.
 
 ### **Program 3: Nested repeat sequences**
 
-**Content**:
-
+**Content (`Program3.txt`)**:
 ```plaintext
 play (Do4# quarter,
 repeat(Do4# quarter),
@@ -337,66 +293,13 @@ repeat(Do4# quarter,repeat(Do4# quarter,repeat(Do4# quarter)))
 end
 ```
 
-**Expected Output**:
-```
-$Program
-  $Track chunk
-  ├── KEYWORD(play)
-  ├── LPAREN
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Do4#)
-      └── DURATION(quarter)
-    ├── COMMA
-    $Repeat Sequence
-    ├── KEYWORD(repeat)
-    ├── LPAREN
-      $Music sequence
-        $Melody
-        ├── MUSICNOTE(Do4#)
-        └── DURATION(quarter)
-    ├── RPAREN
-    ├── COMMA
-    $Music sequence
-      $Melody
-      ├── MUSICNOTE(Do3-)
-      └── DURATION(half)
-    ├── COMMA
-    $Repeat Sequence
-    ├── KEYWORD(repeat)
-    ├── LPAREN
-      $Music sequence
-        $Melody
-        ├── MUSICNOTE(Do4#)
-        └── DURATION(quarter)
-      ├── COMMA
-      $Repeat Sequence
-      ├── KEYWORD(repeat)
-      ├── LPAREN
-        $Music sequence
-          $Melody
-          ├── MUSICNOTE(Do4#)
-          └── DURATION(quarter)
-        ├── COMMA
-        $Repeat Sequence
-        ├── KEYWORD(repeat)
-        ├── LPAREN
-          $Music sequence
-            $Melody
-            ├── MUSICNOTE(Do4#)
-            └── DURATION(quarter)
-        ├── RPAREN
-      ├── RPAREN
-    ├── RPAREN
-  ├── RPAREN
-  └── SEMICOLON
-└── KEYWORD(end)
-```
+**Expected Behavior**:
+- Complex nested `repeat` constructs.
+- Generates `program3.mid` reflecting repeated melodic patterns.
 
 ### **Program 4: Missing semicolon**
 
-**Content**:
-
+**Content (`Program4.txt`)**:
 ```plaintext
 title="Composition";
 play (
@@ -405,15 +308,17 @@ play (
 end
 ```
 
-**Expected Output**:
-```
-Parsing error: Syntax error: Expected ';' after track
-```
+**Expected Behavior**:
+- Parsing error due to missing `;` after the `play` block.
+- Prints:
+  ```
+  Parsing error: Syntax error: Expected ';' after track
+  ```
+- No MIDI file generated.
 
 ### **Program 5: Missing music sequence after comma**
 
-**Content**:
-
+**Content (`Program5.txt`)**:
 ```plaintext
 title ="Symphony No. 5";
 composer ="Beethoven";
@@ -421,21 +326,50 @@ play (Do4_ half,);
 end
 ```
 
-**Expected Output**:
-```
-Parsing error: Syntax error: Expected a music note or function like 'repeat'
-```
+**Expected Behavior**:
+- Syntax error due to trailing comma with no subsequent music sequence.
+- Prints:
+  ```
+  Parsing error: Syntax error: Expected a music note or function like 'repeat'
+  ```
+- No MIDI file generated.
+
 ### **Program 6: Missing end token**
 
-**Content**:
-
+**Content (`Program6.txt`)**:
 ```plaintext
 title ="Symphony No. 5";
 composer ="Beethoven";
 play (Do4_ half);
 ```
 
-**Expected Output**:
-```
-Parsing error: Unexpected end of input
-```
+**Expected Behavior**:
+- Parsing error due to missing `end`.
+- Prints:
+  ```
+  Parsing error: Unexpected end of input
+  ```
+- No MIDI file generated.
+
+---
+
+## **Additional Notes on Code Structure**
+
+- **tokens.ml**: Defines token types and their variants.
+- **lexer.ml**: Converts raw input into tokens, raising errors on malformed input.
+- **parser.ml**: Implements recursive descent parsing, consuming tokens and building the AST.
+- **ast_printer.ml**: Provides functions to print the AST in a human-readable tree format.
+- **code_generator.ml**: Translates the AST into a `.mid` file, handling tempo, instrument changes, and note events.
+- **main.ml**: Entry point that orchestrates the pipeline: reading input, lexing, parsing, printing the AST (optional), and invoking the code generator.
+- **install_and_run.sh**: Shell script to automate installation checks, compilation, and running the compiler on a given input file.
+
+The entire pipeline ensures that a valid program transforms from high-level musical instructions into a playable MIDI file.
+
+---
+
+## **Video**
+
+A demonstration video showing the entire process, from installation to execution and verification of outputs, is available at:  
+[https://www.youtube.com/watch?v=yMmpJsR8iAI](https://www.youtube.com/watch?v=yMmpJsR8iAI)
+
+ 
