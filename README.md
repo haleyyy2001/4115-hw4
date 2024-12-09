@@ -252,22 +252,47 @@ The provided sample programs (`Program1.txt` to `Program6.txt`) test various fea
 ./install_and_run.sh ProgramX.txt
 ```
 
-### **Program 1: Basic Music Program**
+
+
+
+
+
+
+```markdown
+### **Program 1: Missing Semicolon**
 
 **Content (`Program1.txt`)**:
 ```plaintext
-title="mymusic";
-composer="someone";
-instrument=Piano;
-bpm=120;
-play (Do4# quarter, Re4- half, repeat(Mi4- whole, Fa4# half));
+title="Composition";
+play (
+    Do4# quarter
+)
 end
 ```
 
 **Expected Behavior**:
-- Lex and parse successfully.
-- Print AST representing assignments in header and `play` block.
-- Generate `program1.mid` file containing the specified notes and repeats.
+- Parsing error due to missing `;` after the `play(...)` block.
+- Prints:
+  ```
+  Parsing error: Syntax error: Expected ';' after track
+  ```
+- No MIDI file generated.
+
+ `
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 ### **Program 2: Empty Header Chunk**
 
@@ -297,59 +322,49 @@ end
 - Complex nested `repeat` constructs.
 - Generates `program3.mid` reflecting repeated melodic patterns.
 
-### **Program 4: Missing semicolon**
+### **Program 4: Guitar Melody with Set BPM**
 
 **Content (`Program4.txt`)**:
 ```plaintext
-title="Composition";
+instrument=Guitar;
+bpm=100;
 play (
-    Do4# quarter
-)
+  Do4- quarter, Do4- quarter, So4- quarter, So4- quarter,
+  La4- quarter, La4- quarter, So4- half,
+  Fa4- quarter, Fa4- quarter, Mi4- quarter, Mi4- quarter,
+  Re4- quarter, Re4- quarter, Do4- half
+);
 end
 ```
 
 **Expected Behavior**:
-- Parsing error due to missing `;` after the `play` block.
-- Prints:
-  ```
-  Parsing error: Syntax error: Expected ';' after track
-  ```
-- No MIDI file generated.
+- Lex and parse successfully.
+- Instrument set to Guitar; BPM set to 100.
+- Print AST for header and `play` block if enabled.
+- Generate `program4.mid` reflecting the given melody.
 
-### **Program 5: Missing music sequence after comma**
+### **Program 5: Repeated Patterns at High Tempo**
 
 **Content (`Program5.txt`)**:
 ```plaintext
-title ="Symphony No. 5";
-composer ="Beethoven";
-play (Do4_ half,);
+instrument=Piano;
+bpm=180;
+play (
+  repeat(Do4- quarter), repeat(So4- quarter),
+  repeat(La4- quarter), So4- half,
+  repeat(Fa4- quarter), repeat(Mi4- quarter),
+  repeat(Re4- quarter), Do4- half
+);
 end
 ```
 
 **Expected Behavior**:
-- Syntax error due to trailing comma with no subsequent music sequence.
-- Prints:
-  ```
-  Parsing error: Syntax error: Expected a music note or function like 'repeat'
-  ```
-- No MIDI file generated.
+- Lex and parse successfully.
+- Instrument set to Piano; BPM set to 180.
+- Print AST for header and `play` block if enabled.
+- Generate `program5.mid` reflecting repeated notes at brisk tempo.
 
-### **Program 6: Missing end token**
-
-**Content (`Program6.txt`)**:
-```plaintext
-title ="Symphony No. 5";
-composer ="Beethoven";
-play (Do4_ half);
-```
-
-**Expected Behavior**:
-- Parsing error due to missing `end`.
-- Prints:
-  ```
-  Parsing error: Unexpected end of input
-  ```
-- No MIDI file generated.
+ 
 
 ---
 
