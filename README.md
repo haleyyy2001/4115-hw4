@@ -257,8 +257,7 @@ The provided sample programs (`Program1.txt` to `Program6.txt`) test various fea
 
 
 
-
-```markdown
+ 
 ### **Program 1: Missing Semicolon**
 
 **Content (`Program1.txt`)**:
