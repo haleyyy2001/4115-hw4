@@ -1,0 +1,6 @@
+play (Do4# quarter,
+repeat(Do4# quarter),
+Do3- half,
+repeat(Do4# quarter,repeat(Do4# quarter,repeat(Do4# quarter)))
+);
+end

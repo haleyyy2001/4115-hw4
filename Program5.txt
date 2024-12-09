@@ -1,0 +1,9 @@
+instrument=Piano;
+bpm=180;
+play (
+  repeat(Do4- quarter), repeat(So4- quarter),
+  repeat(La4- quarter), So4- half,
+  repeat(Fa4- quarter), repeat(Mi4- quarter),
+  repeat(Re4- quarter), Do4- half
+);
+end

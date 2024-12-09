@@ -1,0 +1,9 @@
+instrument=Guitar;
+bpm=100;
+play (
+  Do4- quarter, Do4- quarter, So4- quarter, So4- quarter,
+  La4- quarter, La4- quarter, So4- half,
+  Fa4- quarter, Fa4- quarter, Mi4- quarter, Mi4- quarter,
+  Re4- quarter, Re4- quarter, Do4- half
+);
+end

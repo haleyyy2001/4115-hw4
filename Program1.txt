@@ -1,0 +1,6 @@
+title="mymusic";
+composer="someone";
+instrument=Piano;
+bpm=120;
+play (Do4# quarter, Re4- half, repeat(Mi4- whole, Fa4# half));
+end
