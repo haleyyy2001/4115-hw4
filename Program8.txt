@@ -1,0 +1,9 @@
+title="Canon Excerpt";
+composer="Pachelbel";
+instrument=Violin;
+bpm=90;
+play (
+    Re4- quarter, La4- quarter, Ti4- quarter, Fa4# quarter, So4- quarter, Re4- quarter, So4- quarter, La4- quarter,
+    Re4- quarter, La4- quarter, Ti4- quarter, Fa4# quarter, So4- quarter, Re4- quarter, So4- quarter, La4- quarter
+);
+end
