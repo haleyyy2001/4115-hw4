@@ -375,6 +375,6 @@ The entire pipeline ensures that a valid program transforms from high-level musi
 ## **Video**
 
 A demonstration video showing the entire process, from installation to execution and verification of outputs, is available at:  
-[https://www.youtube.com/watch?v=yMmpJsR8iAI](https://www.youtube.com/watch?v=yMmpJsR8iAI)
+[https://youtu.be/gQDpoBTRWrY](https://youtu.be/gQDpoBTRWrY)
 
  
