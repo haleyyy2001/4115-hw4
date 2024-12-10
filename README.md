@@ -353,7 +353,7 @@ end
 - Instrument set to Piano; BPM set to 180.
 - Print AST for header and `play` block if enabled.
 - Generate `program5.mid` reflecting repeated notes at brisk tempo.
-
+- Program4 and Program5 both play the same melody, Twinkle Twinkle Little Star. In Program4, every note is explicitly written out, while in Program5, the melody is structured using the repeat function to reduce redundancy. The generated MIDI files from both programs play the same melody but differ in terms of instrumentation and BPM (beats per minute).
  
 
 ---
