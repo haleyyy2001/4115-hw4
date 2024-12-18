@@ -1,0 +1,11 @@
+title="Dead Store Test";
+instrument=Piano;
+instrument=Guitar;
+bpm=120;
+bpm=90;
+
+play (
+  Re4- quarter
+);
+
+end

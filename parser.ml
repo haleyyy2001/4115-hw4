@@ -2,38 +2,36 @@
 open Tokens
 exception ParseError of string
 
-(* CFG of our language, LL(1), No left recursion *)
-
-type expr = (* E -> A = V *)
+type expr =
   | Assign of token * token * token
 
-type header = (* H -> E; H | ε *)
+type header =
   | HeaderEmpty
   | HeaderSet of expr * token * header
 
-type melody = (* melody -> MUSICNOTE DURATION *)
+type melody =
   | Melody of token * token
 
-type music_sequence = (* M -> melody M' | repeat (M) M' *)
+type music_sequence =
   | Note of melody * music_sequence_suc
   | Repeat of token * token * music_sequence * token * music_sequence_suc
 
-and music_sequence_suc = (* M' -> ε | , M *)
+and music_sequence_suc =
   | MusicSeqEmpty
   | MusicSeqNext of token * music_sequence
 
-type track = (* T -> play (M); *)
+type track =
   | Play of token * token * music_sequence * token * token
 
-type program = (* S -> H T end *)
+type program =
   | Program of header * track * token
 
-let next_token tokens = (* Returns the next token and the rest of the token sequence *)
+let next_token tokens =
   match tokens with
   | [] -> raise (ParseError "Unexpected end of input")
   | token :: rest -> (token, rest)
 
-let rec parse_program tokens = (* Start symbol S *)
+let rec parse_program tokens =
   let (header, tokens) = parse_header tokens in
   let (track, tokens) = parse_track tokens in
   let (end_token, tokens) = next_token tokens in
@@ -43,7 +41,7 @@ let rec parse_program tokens = (* Start symbol S *)
   | _ ->
       raise (ParseError "Syntax error: Expected 'end' keyword")
 
-and parse_header tokens = (* H *)
+and parse_header tokens =
   match tokens with
   | (KEYWORD "composer") :: _
   | (KEYWORD "instrument") :: _
@@ -58,7 +56,7 @@ and parse_header tokens = (* H *)
         raise (ParseError "Syntax error: Expected ';' after attribute assignment")
   | _ -> (HeaderEmpty, tokens)
 
-and parse_expr tokens = (* E *)
+and parse_expr tokens =
   let (attribute, tokens) = next_token tokens in
   match attribute with
   | KEYWORD _ ->
@@ -69,9 +67,9 @@ and parse_expr tokens = (* E *)
       else
         raise (ParseError "Syntax error: Expected '=' operator")
   | _ ->
-      raise (ParseError "Syntax error: Expected attribute keywords - instrument, bpm, title, composer")
+      raise (ParseError "Syntax error: Expected an attribute keyword")
 
-and parse_track tokens = (* T *)
+and parse_track tokens =
   let (play_keyword, tokens) = next_token tokens in
   match play_keyword with
   | KEYWORD "play" ->
@@ -90,15 +88,15 @@ and parse_track tokens = (* T *)
       else
         raise (ParseError "Syntax error: Missing '(' after 'play'")
   | _ ->
-      raise (ParseError "Syntax error: Expected 'play' keyword to start declaring track chunk")
+      raise (ParseError "Syntax error: Expected 'play' keyword for track")
 
-and parse_music_sequence tokens = (* M *)
+and parse_music_sequence tokens =
   match tokens with
-  | (MUSICNOTE _) :: _ -> (* First production rule for M *)
+  | (MUSICNOTE _) :: _ ->
       let (melody, tokens) = parse_melody tokens in
       let (m_suc, tokens) = parse_music_sequence_suc tokens in
       (Note (melody, m_suc), tokens)
-  | (KEYWORD "repeat") :: _ -> (* Second production rule for M *)
+  | (KEYWORD "repeat") :: _ ->
       let (repeat, tokens) = next_token tokens in
       let (lpar, tokens) = next_token tokens in
       if lpar = LPAREN then
@@ -112,9 +110,9 @@ and parse_music_sequence tokens = (* M *)
       else
         raise (ParseError "Syntax error: Missing '(' after 'repeat'")
   | _ ->
-      raise (ParseError "Syntax error: Expected a music note or function like 'repeat'")
+      raise (ParseError "Syntax error: Expected a music note or 'repeat'")
 
-and parse_music_sequence_suc tokens = (* M' *)
+and parse_music_sequence_suc tokens =
   match tokens with
   | COMMA :: _ ->
       let (comma, tokens) = next_token tokens in
@@ -122,15 +120,15 @@ and parse_music_sequence_suc tokens = (* M' *)
       (MusicSeqNext (comma, music_seq), tokens)
   | _ -> (MusicSeqEmpty, tokens)
 
-and parse_melody tokens = (* Single melody consists of pitch and duration *)
+and parse_melody tokens =
   let (note_token, tokens) = next_token tokens in
   match note_token with
   | MUSICNOTE _ ->
       let (duration_token, tokens) = next_token tokens in
-      match duration_token with
-      | DURATION _ ->
-          (Melody (note_token, duration_token), tokens)
-      | _ ->
-          raise (ParseError "Syntax error: Expected a duration after the music note")
+      (match duration_token with
+       | DURATION _ ->
+           (Melody (note_token, duration_token), tokens)
+       | _ ->
+           raise (ParseError "Syntax error: Expected a duration after the music note"))
   | _ ->
       raise (ParseError "Syntax error: Expected a music note")

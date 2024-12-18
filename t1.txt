@@ -1,0 +1,10 @@
+title="Peephole Test";
+instrument=Piano;
+bpm=120;
+
+play (
+  Do4# quarter,
+  Do4# quarter
+);
+
+end

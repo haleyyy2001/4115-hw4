@@ -1,0 +1,13 @@
+title="Loop Unrolling Test";
+instrument=Piano;
+bpm=120;
+
+play (
+  repeat(Do4# quarter, So4- eighth),
+  Re4- quarter
+);
+
+end
+
+
+

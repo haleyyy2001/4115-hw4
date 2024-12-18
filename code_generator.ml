@@ -1,5 +1,10 @@
+
+
+(* code_generator.ml *)
 open Tokens
 open Parser
+open Ir
+open Optimizer
 open Printf
 
 let extract_string token =
@@ -52,22 +57,33 @@ let write_variable_length_quantity n =
   in
    (aux [] n)
 
-(* Globals for header attributes *)
-let composer = ref ""
-let title = ref ""
-let instrument_type = ref "piano" (* default instrument *)
-let tempo = ref 120 (* default BPM *)
+(* Temporary storage for header assignments and IR *)
+let header_assignments = ref []
+let ir = {final_instrument = "piano"; final_tempo=120; notes=[]}
 
-(* Generate MIDI from AST *)
+(* A helper function to print the optimized IR *)
+let print_ir (ir: ir_program) =
+  Printf.printf "\n=== Optimized IR ===\n";
+  Printf.printf "Instrument: %s\n" ir.final_instrument;
+  Printf.printf "Tempo (BPM): %d\n" ir.final_tempo;
+  Printf.printf "Notes:\n";
+  List.iter (fun n ->
+    Printf.printf "  Pitch: %d, Length: %d\n" n.pitch n.length
+  ) ir.notes;
+  Printf.printf "====================\n\n"
+
 let generate_midi ast output_file =
   let ticks_per_quarter = 480 in
-  let events = ref [] in
 
   let rec process_program = function
     | Program (header, track, _) ->
         process_header header;
         process_track track;
-        write_midi_file output_file !events
+        (* Optimize IR *)
+        let optimized_ir = optimize !header_assignments ir in
+        (* Print the IR after optimization for debugging *)
+        print_ir optimized_ir;
+        write_midi_file output_file optimized_ir
 
   and process_header header =
     let rec aux = function
@@ -82,25 +98,14 @@ let generate_midi ast output_file =
           in
           (match attr with
            | "bpm" ->
-               tempo := int_of_string value
+               header_assignments := !header_assignments @ [SetTempo (int_of_string value)]
            | "instrument" ->
                let v = String.lowercase_ascii value in
-               if v = "guitar" then (
-                 instrument_type := "guitar";
-                 printf "Instrument set to: Guitar\n"
-               ) else if v = "piano" then (
-                 instrument_type := "piano";
-                 printf "Instrument set to: Piano\n"
-               ) else (
-                 instrument_type := "piano";
-                 printf "Instrument not recognized. Defaulting to Piano.\n"
-               )
+               header_assignments := !header_assignments @ [SetInstrument v]
            | "composer" ->
-               composer := value;
-               printf "Composer set to: %s\n" !composer
+               header_assignments := !header_assignments @ [SetComposer value]
            | "title" ->
-               title := value;
-               printf "Title set to: %s\n" !title
+               header_assignments := !header_assignments @ [SetTitle value]
            | _ -> ());
           aux rest
     in
@@ -109,29 +114,28 @@ let generate_midi ast output_file =
   and process_track track =
     match track with
     | Play (_, _, music_seq, _, _) ->
-        let current_time = ref 0 in
-        process_music_sequence music_seq current_time
+        process_music_sequence music_seq
 
-  and process_music_sequence music_seq current_time =
+  and process_music_sequence music_seq =
     match music_seq with
     | Note (Melody (note_token, duration_token), m_suc) ->
         let note_str = extract_string note_token in
         let duration_str = extract_string duration_token in
         let midi_note, note_length = parse_note note_str duration_str in
-        add_note_event midi_note note_length current_time;
-        process_music_sequence_suc m_suc current_time
+        ir.notes <- ir.notes @ [{pitch=midi_note; length=note_length}];
+        process_music_sequence_suc m_suc
     | Repeat (_, _, inner_seq, _, m_suc) ->
         let repeat_count = 2 in
         for _ = 1 to repeat_count do
-          process_music_sequence inner_seq current_time
+          process_music_sequence inner_seq
         done;
-        process_music_sequence_suc m_suc current_time
+        process_music_sequence_suc m_suc
 
-  and process_music_sequence_suc m_suc current_time =
+  and process_music_sequence_suc m_suc =
     match m_suc with
     | MusicSeqEmpty -> ()
     | MusicSeqNext (_, music_seq) ->
-        process_music_sequence music_seq current_time
+        process_music_sequence music_seq
 
   and parse_note note_str duration_str =
     if String.length note_str < 3 then failwith ("Invalid note format: " ^ note_str)
@@ -147,25 +151,25 @@ let generate_midi ast output_file =
       let note_length = duration_to_ticks duration_str ticks_per_quarter in
       (midi_note, note_length)
 
-  and add_note_event midi_note note_length current_time =
-    let delta_time = !current_time in
-    let note_on_event = (`Note_on (0, midi_note, 64), delta_time) in
-    let note_off_event = (`Note_off (0, midi_note, 64), delta_time + note_length) in
-    events := !events @ [note_on_event; note_off_event];
-    current_time := !current_time + note_length;
-    Printf.printf "Debug: Added note on at %d, note off at %d, note=%d\n" delta_time (delta_time+note_length) midi_note
-
-  (* Determine the program number based on instrument_type *)
-  (* Piano (Acoustic Grand Piano) = program 0
-     Guitar (Acoustic Guitar Nylon) = program 24 *)
-  and instrument_program_number () =
-    match !instrument_type with
+  and instrument_program_number instr =
+    match instr with
     | "guitar" -> 24
     | "piano" -> 0
-    | _ -> 0 (* default to piano if something else shows up *)
+    | _ -> 0
 
-  and write_midi_file filename events =
-    let sorted_events = List.sort (fun (_, t1) (_, t2) -> compare t1 t2) events in
+  and write_midi_file filename optimized_ir =
+    let events = ref [] in
+    let current_time = ref 0 in
+
+    List.iter (fun n ->
+      let delta_time = !current_time in
+      let note_on_event = (`Note_on (0, n.pitch, 64), delta_time) in
+      let note_off_event = (`Note_off (0, n.pitch, 64), delta_time + n.length) in
+      events := !events @ [note_on_event; note_off_event];
+      current_time := !current_time + n.length
+    ) optimized_ir.notes;
+
+    let sorted_events = List.sort (fun (_, t1) (_, t2) -> compare t1 t2) !events in
     let midi_events = ref [] in
     let last_time = ref 0 in
 
@@ -176,18 +180,14 @@ let generate_midi ast output_file =
       let event_bytes =
         match event with
         | `Note_on (channel, note, velocity) ->
-            Printf.printf "Debug: Note On: note=%d velocity=%d delta_time=%d\n" note velocity delta_time;
             delta_bytes @ [0x90 + channel; note; velocity]
         | `Note_off (channel, note, velocity) ->
-            Printf.printf "Debug: Note Off: note=%d velocity=%d delta_time=%d\n" note velocity delta_time;
             delta_bytes @ [0x80 + channel; note; velocity]
       in
       midi_events := !midi_events @ event_bytes
     ) sorted_events;
 
-    let microseconds_per_quarter = 60000000 / !tempo in
-
-    (* Tempo meta-event *)
+    let microseconds_per_quarter = 60000000 / optimized_ir.final_tempo in
     let tempo_event = [
       0x00;
       0xFF; 0x51; 0x03;
@@ -196,11 +196,10 @@ let generate_midi ast output_file =
       microseconds_per_quarter land 0xFF;
     ] in
 
-    (* Program Change event to set instrument *)
-    let prog_num = instrument_program_number () in
+    let prog_num = instrument_program_number optimized_ir.final_instrument in
     let program_change_event = [
-      0x00;       (* delta time 0 *)
-      0xC0;       (* Program Change on channel 0 *)
+      0x00;
+      0xC0;
       prog_num
     ] in
 
@@ -211,16 +210,15 @@ let generate_midi ast output_file =
 
     let track_data = tempo_event @ program_change_event @ !midi_events @ end_of_track in
 
-    (* MIDI header: format=0, one track *)
     let header = [
-      0x4D; 0x54; 0x68; 0x64; (* 'MThd' *)
+      0x4D; 0x54; 0x68; 0x64; (* MThd *)
       0x00; 0x00; 0x00; 0x06;
-      0x00; 0x00;             (* format 0 *)
-      0x00; 0x01;             (* one track *)
-      (ticks_per_quarter lsr 8) land 0xFF; (ticks_per_quarter land 0xFF);
+      0x00; 0x00;
+      0x00; 0x01;
+      (480 lsr 8) land 0xFF; (480 land 0xFF);
     ] in
 
-    let track_chunk_header = [0x4D; 0x54; 0x72; 0x6B] in (* 'MTrk' *)
+    let track_chunk_header = [0x4D; 0x54; 0x72; 0x6B] in (* MTrk *)
     let track_length = List.length track_data in
     let track_length_bytes = [
       (track_length lsr 24) land 0xFF;
@@ -230,32 +228,9 @@ let generate_midi ast output_file =
     ] in
 
     let midi_bytes = header @ track_chunk_header @ track_length_bytes @ track_data in
-
-    (* Print hex output with commentary *)
-    Printf.printf "MIDI hex output:\n";
-    List.iteri (fun i byte ->
-      Printf.printf "%02X " byte;
-      if i = 3 then Printf.printf("\n-- 'MThd' header done\n");
-      if i = 13 then Printf.printf("\n-- 'MTrk' track header and length done\n");
-      if i = 21 then Printf.printf("\n-- Track events start here\n");
-    ) midi_bytes;
-
-    Printf.printf "\n\nDetailed Commentary:\n";
-    if !title <> "" then Printf.printf "- Title: %s\n" !title;
-    if !composer <> "" then Printf.printf "- Composer: %s\n" !composer;
-    Printf.printf "- Instrument: %s (Program %d)\n" !instrument_type prog_num;
-    Printf.printf "- BPM: %d\n" !tempo;
-    Printf.printf "- 'MThd': format=0, one track, 480 ticks/quarter.\n";
-    Printf.printf "- 'MTrk': track data.\n";
-    Printf.printf "- Tempo event sets %d BPM.\n" !tempo;
-    Printf.printf "- Program Change sets instrument to %s.\n" !instrument_type;
-    Printf.printf "- Notes: encoded as Note On (0x90) and Note Off (0x80) events.\n";
-    Printf.printf "- End of track (FF 2F 00) ends track.\n";
-
     let oc = open_out_bin filename in
     List.iter (fun byte -> output_byte oc byte) midi_bytes;
     close_out oc;
     Printf.printf "MIDI file '%s' generated successfully.\n" filename
-
   in
   process_program ast

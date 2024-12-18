@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Installation and execution script for the compiler
+# install_and_run.sh
 
 # Check if OCaml is installed
 if ! command -v ocamlc &> /dev/null
@@ -38,16 +38,19 @@ rm -f compiler.exe *.cmo *.cmi *.mid
 
 # Compile the code
 echo "Compiling the compiler..."
-
-# Compile each module
 ocamlc -c tokens.ml
 ocamlc -c lexer.ml
 ocamlc -c parser.ml
+ocamlc -c ir.ml
+ocamlc -c optimizer.ml
+ocamlc -c ast_printer.ml
 ocamlc -c code_generator.ml
 ocamlc -c main.ml
+ocamlc -o compiler.exe tokens.cmo lexer.cmo parser.cmo ir.cmo optimizer.cmo ast_printer.cmo code_generator.cmo main.cmo
 
-# Link the object files into an executable
-ocamlc -o compiler.exe tokens.cmo lexer.cmo parser.cmo code_generator.cmo main.cmo
+
+ 
+
 
 if [ $? -ne 0 ]; then
     echo "Compilation failed."

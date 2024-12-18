@@ -1,6 +1,6 @@
+(* ast_printer.ml *)
 open Tokens
 open Parser
-
 
 let rec print_token token =
   match token with
@@ -14,8 +14,7 @@ let rec print_token token =
   | LPAREN->"LPAREN"
   | RPAREN-> "RPAREN"
   | SEMICOLON-> "SEMICOLON"
-  | COMMA->"COMMA"
-
+  | COMMA-> "COMMA"
 
 let rec print_ast node indent =
   let prefix=String.make indent ' ' in
@@ -25,16 +24,16 @@ let rec print_ast node indent =
       print_ast_header header (indent + 2);
       print_ast_track track (indent + 2);
       Printf.printf "%s└── %s\n" prefix (print_token end_token)
+
 and print_ast_header header indent=
   let prefix = String.make indent ' ' in
   match header with
-  | Empty->()
-  | Set (expr,semicolon_token,rest)->
+  | HeaderEmpty->()
+  | HeaderSet (expr,semicolon_token,rest)->
       Printf.printf "%s$Header chunk\n" prefix;
       print_ast_expr expr (indent + 2);
       Printf.printf "%s└── %s\n" prefix (print_token semicolon_token);
       print_ast_header rest indent
-
 
 and print_ast_expr expr indent=
   let prefix = String.make indent ' ' in
@@ -44,7 +43,6 @@ and print_ast_expr expr indent=
       Printf.printf "%s├── %s\n" prefix (print_token attr_token);
       Printf.printf "%s├── %s\n" prefix (print_token operator_token);
       Printf.printf "%s└── %s\n" prefix (print_token value_token)
-
 
 and print_ast_track track indent =
   let prefix = String.make indent ' ' in
@@ -75,11 +73,10 @@ and print_ast_music_sequence music_seq indent =
 and print_ast_music_sequence_suc m_suc indent =
   let prefix = String.make indent ' ' in
   match m_suc with
-  | Empty -> ()
-  | Next (comma_token, music_seq) ->
+  | MusicSeqEmpty -> ()
+  | MusicSeqNext (comma_token, music_seq) ->
       Printf.printf "%s├── %s\n" prefix (print_token comma_token);
       print_ast_music_sequence music_seq indent
-
 
 and print_ast_melody melody indent =
   let prefix = String.make indent ' ' in

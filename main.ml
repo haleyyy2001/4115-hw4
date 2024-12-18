@@ -1,9 +1,9 @@
+(* main.ml *)
 open Lexer
 open Tokens
 open Parser
-(* Comment out ast_printer if not needed *)
-(* open Ast_printer *)
-open Code_generator  (* Include the code generator *)
+(* open Ast_printer *) (* Uncomment if you want to print AST *)
+open Code_generator
 
 let () =
   if Array.length Sys.argv < 2 then
@@ -26,8 +26,8 @@ let () =
     try
       let tokens = lex source in
       let (ast, _) = parse_program tokens in
-      (* Optionally print the AST *)
-      (* print_ast ast 0 *)
+      (* Uncomment if you want to print the AST:
+      print_ast ast 0; *)
       let output_file = (Filename.remove_extension filename) ^ ".mid" in
       generate_midi ast output_file;
       Printf.printf "Generated MIDI file: %s\n" output_file
