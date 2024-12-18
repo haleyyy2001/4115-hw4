@@ -1,4 +1,4 @@
-
+  
 ## Team Members
 
 - **Name**: Huilin Tai (ht2666), Huixuan Huang (hh3101)
@@ -24,6 +24,10 @@
 7. [Code Optimization](#code-optimization)  
    - [Implemented Optimization Techniques](#implemented-optimization-techniques)  
    - [Sample Input Programs for Optimization](#sample-input-programs-for-optimization)  
+     - [t1.txt (Peephole Optimization)](#t1txt-peephole-optimization)  
+     - [t2.txt (Dead Store Elimination)](#t2txt-dead-store-elimination)  
+     - [t3.txt (Loop Unrolling)](#t3txt-loop-unrolling)  
+     - [t4.txt (Another Peephole Optimization)](#t4txt-another-peephole-optimization)
 8. [Additional Notes on Code Structure](#additional-notes-on-code-structure)  
 9. [Video](#video)
 
@@ -33,22 +37,20 @@
 
 This project implements a compiler front-end for a custom domain-specific programming language designed for musical composition. The language allows specifying musical attributes (BPM, instrument, composer, title) and defining sequences of notes, including repeated sections, to generate a MIDI file. The compilation pipeline includes:
 
-1. **Lexical Analysis (Lexer)**: Converts source code into tokens.  
-2. **Parsing (Parser)**: Builds an AST from tokens according to the grammar rules.  
-3. **Code Generation**: Translates the AST into a MIDI file.  
-4. **Code Optimization (New)**: Optimizes the intermediate representation (IR) before generating the final MIDI.
-
-By adding a code optimization stage, we improve efficiency without changing the musical result, achieving reduced execution time, minimized resource utilization, and improved overall performance.
+1. **Lexical Analysis (Lexer)**: Converts the source code into tokens.  
+2. **Parsing (Parser)**: Builds an Abstract Syntax Tree (AST) from tokens according to the grammar rules.  
+3. **Code Generation**: Translates the AST into a MIDI file playable by standard MIDI players.  
+4. **Code Optimization (New)**: Optimizes the intermediate representation (IR) before generating the final MIDI, improving efficiency without changing the musical result.
 
 ---
 
 ## Language Structure
 
-- **Header Declarations**: Set global attributes (instrument, bpm, composer, title).
-- **Play Commands**: Introduce sequences of notes, possibly using `repeat(...)` to define loops.
-- **Music Notes**: Defined as `<Solfege><Octave><Accidental>` (e.g., `Do4#`, `Re4-`).
+- **Header Declarations**: Specify global settings such as instrument, bpm, composer, and title.
+- **Play Commands**: Introduce sequences of notes, potentially including `repeat(...)` constructs to define repeated sections.
+- **Music Notes**: Specified as `<Solfege><Octave><Accidental>` (e.g., `Do4#`, `Re4-`, `Mi4_`).
 - **Durations**: `whole`, `half`, `quarter`, `eighth`, `sixteenth`.
-- **End Command**: `end` marks the end of the program.
+- **End Command**: The `end` keyword marks the conclusion of the program.
 
 Example:
 
@@ -70,19 +72,19 @@ end
 
 ### Token Types and Definitions
 
-| Token Type     | Example       | Description                                                            |
-|----------------|---------------|------------------------------------------------------------------------|
-| KEYWORD        | `play`        | Reserved words (play, repeat, end, etc.)                               |
-| IDENTIFIER     | `Piano`       | User-defined or recognized names                                        |
-| OPERATOR       | `=`           | Assignment operator                                                     |
-| NUMBER         | `120`         | Numeric literals                                                        |
-| STRING_LITERAL | `"Bach"`      | Text in double quotes                                                   |
-| MUSICNOTE      | `Do5#`        | Musical note (solfege, octave, accidental)                              |
-| DURATION       | `quarter`     | Note duration keywords (`whole`, `half`, `quarter`, `eighth`, etc.)     |
-| LPAREN         | `(`           | Left parenthesis                                                        |
-| RPAREN         | `)`           | Right parenthesis                                                       |
-| SEMICOLON      | `;`           | Statement terminator                                                    |
-| COMMA          | `,`           | List separator                                                          |
+| Token Type     | Example       | Description                                                         |
+|----------------|---------------|---------------------------------------------------------------------|
+| KEYWORD        | `play`        | Reserved words (`play`, `repeat`, `end`, etc.)                      |
+| IDENTIFIER     | `Piano`       | User-defined or recognized words                                    |
+| OPERATOR       | `=`           | Assignment operator                                                  |
+| NUMBER         | `120`         | Numeric literals                                                    |
+| STRING_LITERAL | `"Bach"`      | Text enclosed in double quotes                                       |
+| MUSICNOTE      | `Do5#`        | Musical note notation (Solfege+Octave+Accidental)                   |
+| DURATION       | `quarter`     | Note durations: `whole`, `half`, `quarter`, `eighth`, `sixteenth`   |
+| LPAREN         | `(`           | Left parenthesis                                                    |
+| RPAREN         | `)`           | Right parenthesis                                                   |
+| SEMICOLON      | `;`           | Statement terminator                                                |
+| COMMA          | `,`           | Separator for lists                                                  |
 
 ---
 
@@ -130,9 +132,9 @@ end
    ```
 
 4. **Outputs**:
-   On success, a `.mid` file is generated, playable by standard MIDI players.
+   On success, a `.mid` file is generated, which can be played by any MIDI-compatible player.
 
-You can also run `./run_all.sh` to test `t1.txt`, `t2.txt`, `t3.txt`, and `t4.txt` in sequence, demonstrating all optimizations at once.
+You can also run `./run_all.sh` to execute `t1.txt`, `t2.txt`, `t3.txt`, and `t4.txt` in sequence, demonstrating all optimizations at once.
 
 ---
 
@@ -140,102 +142,195 @@ You can also run `./run_all.sh` to test `t1.txt`, `t2.txt`, `t3.txt`, and `t4.tx
 
 ### Lexer Algorithm
 
-- Converts input into tokens.
-- Raises `LexingError` on invalid characters.
+- Processes the source file character by character.
+- Converts recognized patterns into tokens.
+- Raises a `LexingError` if an invalid character is encountered.
 
 ### Parser Algorithm
 
-- Recursive descent parsing based on the CFG.
-- Raises `ParseError` on syntax errors.
+- Uses recursive descent parsing according to the given CFG.
+- Raises `ParseError` on syntax violations.
 
 ### AST Printer
 
-- Prints a readable AST tree for debugging.
+- Outputs a readable tree representation of the AST for debugging and verification.
 
 ### Code Generator Algorithm
 
-- Translates AST to MIDI events.
-- Sets tempo, instrument, and note sequences.
-- Outputs `.mid` file.
+- Translates the AST into MIDI instructions.
+- Sets the tempo, instrument, and note durations.
+- Produces a `.mid` file as the final output.
 
 ### Error Handling
 
-- **LexingError** for invalid input.
-- **ParseError** for grammar violations.
-- Potential checks in code generation for invalid notes/durations.
+- **LexingError** for invalid or unexpected characters.
+- **ParseError** for grammar mismatches.
+- The code generator may also detect and report invalid notes or durations at runtime.
 
 ---
 
 ## Code Optimization
 
-We introduce a code optimization stage on the IR of notes and headers before MIDI generation. Optimizations improve efficiency without changing the musical output.
+We add a code optimization stage that processes the IR of notes and headers before MIDI generation. These optimizations improve efficiency (reducing redundant operations, removing unnecessary assignments) without altering the resulting music.
 
 ### Implemented Optimization Techniques
 
-1. **Peephole Optimization (Merging Identical Notes)**  
-   Consecutive identical notes are merged into a single longer note. This reduces redundancy and the number of note events.
+1. **Peephole Optimization (Merging Identical Notes)**:  
+   Consecutive identical notes are merged into one longer note. This reduces redundancy and the number of MIDI events.
 
-2. **Dead Store Elimination (Headers)**  
-   Multiple assignments to `instrument` or `bpm` appear in the headers. Only the last assignment is effective, removing unnecessary intermediate assignments.
+2. **Dead Store Elimination (Headers)**:  
+   Multiple assignments to `instrument` or `bpm` in the headers appear during parsing. Dead store elimination ensures only the last assignment is retained, removing intermediate assignments that never affect the final output.
 
-3. **Loop Unrolling (Expanding `repeat(...)` Constructs)**  
-   `repeat(...)` sequences are expanded inline. Instead of loops, the notes are duplicated, showing a fully unrolled sequence with no loops.
+3. **Loop Unrolling (Expanding `repeat(...)` Constructs)**:  
+   Detects `repeat(...)` sequences and duplicates the notes inline, removing loops. Instead of processing loops at runtime, we produce a fully expanded sequence of notes.
 
-4. **Another Peephole Optimization (Second Pass)**  
-   After loop unrolling or other transformations, a second peephole pass ensures that if multiple identical notes are formed, they are merged again, achieving a fully optimized note sequence.
+4. **Another Peephole Optimization (Second Pass)**:  
+   After loop unrolling (or other changes) may introduce new identical consecutive notes. A second peephole pass ensures multiple identical notes fully merge into the minimal number of notes, achieving maximum efficiency.
 
-These four optimizations are applied in sequence, producing a more efficient IR. The resulting IR is printed before MIDI generation.
+These optimizations are applied in sequence to produce a more efficient and cleaner IR. The compiler then prints the final IR (instrument, tempo, and notes) so you can see the optimized code before the MIDI file is generated.
 
 ### Sample Input Programs for Optimization
 
-We provide four test inputs (`t1.txt`, `t2.txt`, `t3.txt`, `t4.txt`), each demonstrating one or more of the implemented optimizations:
+We provide four test inputs (`t1.txt`, `t2.txt`, `t3.txt`, `t4.txt`), each illustrating one of the chosen optimizations. After running these tests, the compiler prints the optimized IR, letting you verify the effects of each optimization.
 
-- **t1.txt (Peephole Optimization)**:
-  Input: Two identical notes (`Do4# quarter, Do4# quarter`)  
-  After Optimization: Merged into a single `Do4#` note with doubled length.  
-  **Demonstrated Optimization:** Peephole merging of identical notes.
+#### t1.txt (Peephole Optimization)
 
-- **t2.txt (Dead Store Elimination)**:
-  Input: Multiple instrument and BPM assignments.  
-  After Optimization: Only the last `instrument` and `bpm` settings remain effective.  
-  **Demonstrated Optimization:** Dead store elimination on headers.
+**Initial Input:**
+```plaintext
+title="Peephole Test";
+instrument=Piano;
+bpm=120;
 
-- **t3.txt (Loop Unrolling)**:
-  Input: Uses `repeat(...)`. After optimization, repeated sequences are expanded inline.  
-  Example: `repeat(Do4# quarter, So4- eighth)` becomes `Do4# quarter, So4- eighth, Do4# quarter, So4- eighth` if repeated twice.  
-  **Demonstrated Optimization:** Loop unrolling.
+play (
+  Do4# quarter,
+  Do4# quarter
+);
 
-- **t4.txt (Another Peephole Optimization)**:
-  Input: Multiple identical notes (e.g., four identical `Do4# quarter` notes).  
-  After Optimization: Fully merged into a single note with quadruple the duration.  
-  **Demonstrated Optimization:** Another peephole pass to ensure full merging after previous optimizations.
+end
+```
+**What it Shows:**  
+Two identical notes (`Do4# quarter, Do4# quarter`) appear in sequence.
 
-After running `./create_test_inputs.sh` and `./run_all.sh`, you will see the final IR printed. For each test:
+**After Optimization:**  
+They merge into a single `Do4#` note with double the length. For example:
+```plaintext
+Instrument: piano
+Tempo (BPM): 120
+Notes:
+  Pitch: 61, Length: 960
+```
+This confirms that peephole optimization merged identical notes into one.
 
-- **t1.txt**: Two identical notes → One merged note.  
-- **t2.txt**: Multiple header assignments → Only last assignments retained.  
-- **t3.txt**: `repeat(...)` sequences expanded → Notes duplicated inline, no loops remain.  
-- **t4.txt**: Multiple identical notes fully merge → One long note.
+#### t2.txt (Dead Store Elimination)
 
-These outputs confirm that all four optimization methods work as intended.
+**Initial Input:**
+```plaintext
+title="Dead Store Test";
+instrument=Piano;
+instrument=Guitar;
+bpm=120;
+bpm=90;
+
+play (
+  Re4- quarter
+);
+
+end
+```
+**What it Shows:**  
+Multiple assignments to `instrument` and `bpm`. Without optimization, intermediate assignments would remain.
+
+**After Optimization:**  
+Only the last `instrument` (Guitar) and `bpm` (90) remain:
+```plaintext
+Instrument: guitar
+Tempo (BPM): 90
+Notes:
+  Pitch: 62, Length: 480
+```
+This confirms dead store elimination on headers is working as intended.
+
+#### t3.txt (Loop Unrolling)
+
+**Initial Input:**
+```plaintext
+title="Loop Unrolling Test";
+instrument=Piano;
+bpm=120;
+
+play (
+  repeat(Do4# quarter, So4- eighth),
+  Re4- quarter
+);
+
+end
+```
+**What it Shows:**  
+A `repeat(...)` construct that repeats `(Do4# quarter, So4- eighth)` twice is included.
+
+**After Optimization (Loop Unrolling):**  
+The repeated sequence is expanded inline. If `repeat(M)` duplicates M twice, `(Do4# quarter, So4- eighth)` becomes `(Do4# quarter, So4- eighth, Do4# quarter, So4- eighth)`:
+```plaintext
+Instrument: piano
+Tempo (BPM): 120
+Notes:
+  Pitch: 61, Length: 480
+  Pitch: 67, Length: 240
+  Pitch: 61, Length: 480
+  Pitch: 67, Length: 240
+  Pitch: 62, Length: 480
+```
+This shows notes from `repeat(...)` are duplicated, no loops remain.
+
+#### t4.txt (Another Peephole Optimization Pass)
+
+**Initial Input:**
+```plaintext
+title="Additional Peephole Test";
+instrument=Piano;
+bpm=120;
+
+play (
+  Do4# quarter,
+  Do4# quarter,
+  Do4# quarter,
+  Do4# quarter
+);
+
+end
+```
+**What it Shows:**  
+Four identical `Do4# quarter` notes appear in a row.
+
+**After Optimization (Second Peephole Pass):**  
+All four merge into one single note of quadruple the length:
+```plaintext
+Instrument: piano
+Tempo (BPM): 120
+Notes:
+  Pitch: 61, Length: 1920
+```
+This demonstrates that multiple passes of peephole optimization can achieve a fully merged sequence.
 
 ---
 
 ## Additional Notes on Code Structure
 
-- `tokens.ml`, `lexer.ml`, `parser.ml` handle the front-end.  
-- `ir.ml` defines the IR (list of notes and header assignments).  
-- `optimizer.ml` applies the four chosen optimizations.  
-- `code_generator.ml` produces the final MIDI after optimization.  
-- `main.ml` coordinates the entire pipeline.
+- `tokens.ml`, `lexer.ml`, `parser.ml` form the front-end (lexing and parsing).
+- `ir.ml` defines the IR (list of notes, header assignments).
+- `optimizer.ml` implements the four optimizations.
+- `code_generator.ml` uses the optimized IR to produce the final MIDI.
+- `main.ml` orchestrates the entire process.
 
-No code generator modifications were needed to demonstrate these optimizations. All changes are confined to the optimizer and the test inputs.
+No modifications to the code generator are necessary. All optimizations rely on the existing language constructs and IR representation.
 
 ---
 
 ## Video
 
-A demonstration video shows the installation steps, running the compiler, and verifying that the optimizations produce the expected results:  
+A demonstration video is available at:  
 [https://youtu.be/gQDpoBTRWrY](https://youtu.be/gQDpoBTRWrY)
+
+This video shows installation, execution, and verification of the optimizations and their results as described above.
 
  
