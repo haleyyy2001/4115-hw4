@@ -1,7 +1,13 @@
- 
+# Music DSL Compiler with Code Optimizations
+
+This repository contains a compiler front-end for a custom domain-specific programming language (DSL) designed for musical composition. It provides functionality to parse, analyze, and transform code describing musical structures and outputs a playable MIDI file. The project also includes several code optimizations that improve the generated output without altering the musical result.
+
+---
+
 ## Team Members
 
-- **Name**: Huilin Tai (ht2666), Huixuan Huang (hh3101)
+- **Name**: Huilin Tai  
+- **Name**: Huixuan Huang  
 
 ---
 
@@ -35,24 +41,34 @@
 
 ## Introduction
 
-This project implements a compiler front-end for a custom domain-specific programming language designed for musical composition. The language allows specifying musical attributes (BPM, instrument, composer, title) and defining sequences of notes, including repeated sections, to ultimately generate music (MIDI files). The compilation pipeline includes:
+This project implements a compiler for a custom domain-specific programming language aimed at musical composition. The language allows users to define musical attributes—such as BPM, instrument, composer, and title—and to write sequences of notes (potentially with loops) for generating MIDI files. The compilation process includes:
 
-1. **Lexical Analysis (Lexer)**: Converts the source code into tokens.
-2. **Parsing (Parser)**: Uses a recursive descent parser to build an Abstract Syntax Tree (AST) from the token stream.
-3. **Code Generation**: Translates the AST into a MIDI file.
-4. **Code Optimization**: (New) Optimizes an intermediate representation of the code before generating the MIDI, improving efficiency without altering the musical result.
+1. **Lexical Analysis**: Conversion of source code into a token stream.  
+2. **Parsing**: A recursive descent parser constructs an Abstract Syntax Tree (AST) from the tokens.  
+3. **Code Generation**: The AST is translated into MIDI instructions, ultimately producing a `.mid` file.  
+4. **Code Optimization**: An optional optimization pass refines the intermediate representation to enhance performance without changing the audible result.
 
 ---
 
 ## Language Structure
 
-- **Header Declarations**: Provide global settings (instrument, bpm, composer, title).
-- **Play Commands**: Define sequences of notes, including `repeat(...)` constructs for loops.
-- **Music Notes**: Specified as `<Solfege><Octave><Accidental>` (e.g., `Do4#`, `Re4-`).
-- **Durations**: `whole`, `half`, `quarter`, `eighth`, `sixteenth`.
-- **End Command**: `end` keyword marks the end of the program.
+### Header Declarations
+- **Global Settings**: Specify the `instrument`, `bpm`, `composer`, and `title`.
 
-Example:
+### Play Commands
+- **`play(...)` Block**: Contains sequences of notes.  
+- **`repeat(...)`**: Defines a repeated section of notes.
+
+### Music Notes
+- **Syntax**: `<Solfege><Octave><Accidental>` (e.g., `Do4#`, `Re4-`).  
+
+### Durations
+- Supported durations include `whole`, `half`, `quarter`, `eighth`, `sixteenth`.
+
+### End Command
+- **`end`**: Marks the end of the program.
+
+#### Example
 ```plaintext
 instrument = Piano;
 bpm = 120;
@@ -71,33 +87,35 @@ end
 
 ### Token Types and Definitions
 
-| Token Type     | Example       | Description                                               |
-|----------------|---------------|-----------------------------------------------------------|
-| KEYWORD        | `play`        | Reserved words (`play`, `repeat`, `end`, etc.)           |
-| IDENTIFIER     | `Piano`       | User-defined or recognized words                          |
-| OPERATOR       | `=`           | Assignment operator                                       |
-| NUMBER         | `120`         | Numeric literals (e.g., for BPM)                          |
-| STRING_LITERAL | `"Beethoven"` | Text enclosed in double quotes                            |
-| MUSICNOTE      | `Do5#`        | Musical note (Solfege+Octave+Accidental)                  |
-| DURATION       | `quarter`     | Note durations: `whole`, `half`, `quarter`, `eighth`, etc.|
-| LPAREN         | `(`           | Left parenthesis                                          |
-| RPAREN         | `)`           | Right parenthesis                                         |
-| SEMICOLON      | `;`           | Statement terminator                                      |
-| COMMA          | `,`           | Separator for sequences                                   |
+| Token Type     | Example       | Description                                                   |
+|----------------|---------------|---------------------------------------------------------------|
+| KEYWORD        | `play`        | Language-reserved words (e.g., `play`, `repeat`, `end`)      |
+| IDENTIFIER     | `Piano`       | User-defined or recognized language identifiers              |
+| OPERATOR       | `=`           | Assignment operator                                          |
+| NUMBER         | `120`         | Numeric literals (e.g., BPM values)                          |
+| STRING_LITERAL | `"Beethoven"` | Text enclosed in double quotes                                |
+| MUSICNOTE      | `Do5#`        | A musical note (Solfege + Octave + Accidental)               |
+| DURATION       | `quarter`     | Supported durations: `whole`, `half`, `quarter`, `eighth`, `sixteenth` |
+| LPAREN         | `(`           | Left parenthesis                                             |
+| RPAREN         | `)`           | Right parenthesis                                            |
+| SEMICOLON      | `;`           | Statement terminator                                         |
+| COMMA          | `,`           | Delimiter for sequences                                      |
 
 ---
 
 ## Grammar Definition (CFG)
 
-1. **S** -> **H T end**
-2. **H** -> **E; H** | ε
-3. **E** -> **A=V**
-4. **A** -> **composer** | **instrument** | **bpm** | **title**
-5. **V** -> **NUMBER** | **STRING_LITERAL** | **IDENTIFIER**
-6. **T** -> **play (M);**
-7. **M** -> **melody M'** | **repeat (M) M'**
-8. **M'** -> ε | **, M**
-9. **melody** -> **MUSICNOTE DURATION**
+```
+1. S  -> H T end
+2. H  -> E; H | ε
+3. E  -> A=V
+4. A  -> composer | instrument | bpm | title
+5. V  -> NUMBER | STRING_LITERAL | IDENTIFIER
+6. T  -> play (M);
+7. M  -> melody M' | repeat (M) M'
+8. M' -> ε | , M
+9. melody -> MUSICNOTE DURATION
+```
 
 ---
 
@@ -105,8 +123,10 @@ end
 
 ### Prerequisites
 
-- **OCaml Compiler (ocamlc)**: Install via `apt-get` or `brew`.
-- **opam** (recommended) to manage OCaml packages.
+- **OCaml Compiler (ocamlc)**
+- **opam** (recommended) for managing OCaml packages
+
+Install OCaml through your system’s package manager (e.g., `apt-get`, `brew`) or via the official OCaml distribution.
 
 ### Execution Steps
 
@@ -115,27 +135,23 @@ end
    git clone https://github.com/haleyyy2001/4115-hw3.git
    cd 4115-hw3
    ```
-
 2. **Make the Script Executable**:
    ```bash
    chmod +x install_and_run.sh
    ```
-
 3. **Run the Compiler**:
    ```bash
    ./install_and_run.sh <input_file>
-   ```
-   For example:
-   ```bash
+   # Example:
    ./install_and_run.sh t1.txt
    ```
-
-4. **Outputs**:
-   On success, a `.mid` file is generated. You can also run:
-   ```bash
-   ./run_all.sh
-   ```
-   to test all t1-t4 optimizations at once.
+4. **Generate Outputs**:
+   - A `.mid` file is produced upon successful compilation.
+   - You can also run:
+     ```bash
+     ./run_all.sh
+     ```
+     to test all four sample inputs (t1–t4) at once.
 
 ---
 
@@ -143,56 +159,58 @@ end
 
 ### Lexer Algorithm
 
-- Processes source code character by character.
-- Converts recognized patterns into tokens.
-- Raises a `LexingError` on invalid input.
+- Reads the input text character by character.  
+- Matches patterns to produce tokens (e.g., keywords, notes, numbers).  
+- Raises a `LexingError` when encountering invalid or unknown characters.
 
 ### Parser Algorithm
 
-- Uses recursive descent parsing according to the CFG.
-- Raises `ParseError` on syntax violations.
+- Implements a recursive descent parser based on the provided CFG.  
+- Constructs an AST for valid inputs.  
+- Raises a `ParseError` if the syntax is invalid.
 
 ### AST Printer
 
-- Prints a readable AST tree for debugging.
+- Outputs a textual representation of the AST.  
+- Useful for debugging intermediate representations.
 
 ### Code Generator Algorithm
 
-- Translates the AST into MIDI events.
-- Sets tempo, instrument, note sequences.
-- Produces `.mid` file output.
+- Translates the AST into MIDI instructions.  
+- Applies global headers (tempo, instrument).  
+- Produces a `.mid` file containing the resulting music.
 
 ### Error Handling
 
-- **LexingError** for invalid characters.
-- **ParseError** for grammar mismatches.
-- Potential semantic checks in code generation for invalid notes or durations.
+- **LexingError**: For illegal character sequences or unexpected tokens.  
+- **ParseError**: For grammar or syntax mismatches.  
+- **Semantic Checks**: May occur during code generation (e.g., invalid notes, durations).
 
 ---
 
 ## Code Optimization
 
-We introduce a code optimization stage to improve efficiency without changing the musical outcome.
+An optimization pass is included to refine the intermediate representation before final code generation. The goal is to minimize redundant instructions without changing the musical output.
 
 ### Implemented Optimization Techniques
 
-1. **Peephole Optimization (Merging Identical Notes)**:  
-   Merges consecutive identical notes into a single note with a longer duration.
+1. **Peephole Optimization**  
+   - Identifies consecutive identical notes and merges them into one with a longer duration.
 
-2. **Dead Store Elimination (Headers)**:  
-   Multiple assignments to `instrument` or `bpm` are reduced so only the last assignment is used.
+2. **Dead Store Elimination**  
+   - Removes redundant header assignments (e.g., multiple assignments to `instrument`, only the last one is relevant).
 
-3. **Loop Unrolling (Expanding `repeat(...)`)**:  
-   `repeat(...)` constructs are expanded inline, eliminating loops and leaving fully duplicated notes.
+3. **Loop Unrolling**  
+   - Expands `repeat(...)` constructs into explicit note sequences, removing loop constructs.
 
-4. **Another Peephole Optimization (Second Pass)**:  
-   After other transformations, a second peephole pass ensures multiple identical notes fully merge into the minimal number of notes.
+4. **Additional Peephole Optimization**  
+   - A second pass that further merges any newly consecutive identical notes after other optimizations.
 
-These four optimizations are applied in sequence.
+These optimizations are applied sequentially and can be observed in the sample programs below.
 
 ### Sample Input Programs and Expected Outputs
 
-Below are the four test inputs (`t1.txt`, `t2.txt`, `t3.txt`, `t4.txt`), each demonstrating one optimization. We also show the final IR (instrument, tempo, and notes) printed after optimization.
+Below are four demonstration inputs, each illustrating a specific optimization.
 
 #### t1.txt (Peephole Optimization)
 
@@ -209,17 +227,15 @@ play (
 
 end
 ```
+**Transformation:** Two identical notes (`Do4# quarter`) are merged into a single note with doubled duration.
 
-**What Happens:** Two identical `Do4# quarter` notes are merged into one longer note.
-
-**After Optimization:**
-```plaintext
+**Optimized Representation:**
+```
 Instrument: piano
 Tempo (BPM): 120
 Notes:
   Pitch: 61, Length: 960
 ```
-A single merged note replaces the two identical ones.
 
 #### t2.txt (Dead Store Elimination)
 
@@ -237,17 +253,15 @@ play (
 
 end
 ```
+**Transformation:** Only the final assignments to `instrument` and `bpm` are retained.
 
-**What Happens:** Multiple instrument and BPM assignments appear. Only the last assignments remain effective.
-
-**After Optimization:**
-```plaintext
+**Optimized Representation:**
+```
 Instrument: guitar
 Tempo (BPM): 90
 Notes:
   Pitch: 62, Length: 480
 ```
-Intermediate assignments are removed, demonstrating dead store elimination.
 
 #### t3.txt (Loop Unrolling)
 
@@ -264,11 +278,10 @@ play (
 
 end
 ```
+**Transformation:** The `repeat(...)` pattern is unrolled, duplicating the note sequence inline.
 
-**What Happens:** The `repeat(...)` construct is expanded. If `repeat(M)` duplicates M twice, `(Do4# quarter, So4- eighth)` appear twice in sequence.
-
-**After Optimization:**
-```plaintext
+**Optimized Representation:**
+```
 Instrument: piano
 Tempo (BPM): 120
 Notes:
@@ -278,7 +291,6 @@ Notes:
   Pitch: 67, Length: 240
   Pitch: 62, Length: 480
 ```
-The notes from `repeat(...)` are duplicated, no loops remain.
 
 #### t4.txt (Another Peephole Optimization)
 
@@ -297,35 +309,35 @@ play (
 
 end
 ```
+**Transformation:** Four consecutive identical notes (`Do4# quarter`) are merged into a single note with quadruple the original duration.
 
-**What Happens:** Four identical `Do4# quarter` notes appear. After two passes of peephole optimization, they fully merge into one note with four times the length.
-
-**After Optimization:**
-```plaintext
+**Optimized Representation:**
+```
 Instrument: piano
 Tempo (BPM): 120
 Notes:
   Pitch: 61, Length: 1920
 ```
-All four identical notes merged into a single long note.
 
 ---
 
 ## Additional Notes on Code Structure
 
-- `tokens.ml`, `lexer.ml`, `parser.ml` handle lexical and syntactic analysis.
-- `ir.ml` defines the IR (list of notes and header assignments).
-- `optimizer.ml` applies the chosen optimizations.
-- `code_generator.ml` finalizes MIDI generation after optimization.
-- `main.ml` orchestrates the entire pipeline.
+- **`tokens.ml`, `lexer.ml`, `parser.ml`**: Handle tokenization and parsing.  
+- **`ir.ml`**: Defines the intermediate representation for notes and header data.  
+- **`optimizer.ml`**: Implements all four optimizations.  
+- **`code_generator.ml`**: Generates MIDI code based on the (optimized) AST.  
+- **`main.ml`**: Orchestrates the entire compilation process.
 
-No modifications to the code generator were needed. The optimizations rely on existing constructs, demonstrating all four techniques clearly.
+The optimizations leverage the existing IR and do not require changes to the core code generator.
 
 ---
 
 ## Video
 
-A demonstration video showing the entire process, from installation to execution and verification of outputs, is available at:
+For a complete walkthrough demonstrating how to install, run, and verify the outputs, watch the video here:  
 [https://youtu.be/dCAIf7JYgzM](https://youtu.be/dCAIf7JYgzM)
 
- 
+---
+
+**Thank you for exploring our music DSL compiler project!** If you have any questions or suggestions, feel free to open an issue or submit a pull request.
